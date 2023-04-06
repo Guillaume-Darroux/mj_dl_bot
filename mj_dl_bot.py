@@ -4,6 +4,7 @@ from dotenv import load_dotenv # Chargement des variables d'environnement
 import requests # Requêtes HTTP
 import os # Manipulation des fichiers et dossiers
 import datetime # Gestion des dates
+import platform # Gestion des systèmes d'exploitation
 
 # On charge le fichier .env
 load_dotenv()
@@ -12,6 +13,17 @@ load_dotenv()
 discord_token = os.getenv('DISCORD_TOKEN') # token du bot
 target_channel_id = os.getenv('TARGET_CHANNEL_ID') # ID du canal où est le bot
 
+current_date = datetime.datetime.now() # On récupère la date du jour pour formater le nom du futur répertoire de destination
+folder_name = current_date.strftime("%Y-%m-%d")
+
+# Selon l'OS, on paramètre le répertoire de destination des images
+current_os = platform.system()
+if current_os == "Linux":
+    save_folder_linux = os.getenv('SAVE_FOLDER_LINUX')
+    save_folder = f"{save_folder_linux}{folder_name}"
+else:
+    save_folder_windows = os.getenv('SAVE_FOLDER_WINDOWS')
+    save_folder = f"{save_folder_windows}{folder_name}"
 
 # On crée une instance du client discord avec tous les droits
 intents = discord.Intents.all()
@@ -21,16 +33,12 @@ client = discord.Client(intents=intents)
 async def download_image(url, filename, message):
     response = requests.get(url)
     if response.status_code == 200:
-        current_date = datetime.datetime.now() # On récupère la date du jour pour formater le nom du futur répertoire de destination
-        folder_name = current_date.strftime("%Y-%m-%d")
-        save_folder = f"/media/guillaume/Bonus/Midjourney/Images/{folder_name}" # dossier où sont téléchargées les images
         if not os.path.exists(save_folder): # si le répertoire n'existe pas, on le crée
-            os.makedirs(save_folder) 
+            os.makedirs(save_folder)
         with open(os.path.join(save_folder, filename), 'wb') as f: # on ouvre le fichier en mode écriture binaire
             f.write(response.content) # on écrit le contenu de la réponse dans le fichier
             print("Image téléchargée: {0}".format(filename))
         await message.channel.send("Mission accomplie, formation du lézard !")
-
 
 # Quand le bot est prêt à être utilisé
 @client.event
@@ -38,7 +46,6 @@ async def on_ready():
     print("Bot connecté en tant que {0.user}".format(client))
     # Le bot envoie un message dans le canal "général"
     await client.get_channel(1087111766384853104).send("Vous m'avez d'mandé Sir ?") # TODO: à modifier par la variable d'environnement target_channel_id (ne fonctionne pas)
-
 
 # Quand un message est envoyé dans le canal
 @client.event
